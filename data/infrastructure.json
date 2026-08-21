@@ -1,0 +1,35 @@
+{
+  "national_benchmarks": {
+    "healthcare_target_per_100k": 3.5,
+    "school_target_per_10k": 1.2,
+    "road_quality_target": 80,
+    "digital_target": 85,
+    "water_access_target": 85
+  },
+  "categories": [
+    "Healthcare",
+    "Education",
+    "Roads",
+    "Public Transport",
+    "Water & Sanitation",
+    "Electricity",
+    "Digital Infrastructure",
+    "Housing",
+    "Agriculture",
+    "Environment",
+    "Public Safety",
+    "Other"
+  ],
+  "languages": [
+    "English",
+    "Kannada",
+    "Hindi"
+  ],
+  "priority_weights": {
+    "citizen_demand": 0.30,
+    "urgency": 0.25,
+    "infrastructure_gap": 0.20,
+    "affected_population": 0.15,
+    "regional_vulnerability": 0.10
+  }
+}

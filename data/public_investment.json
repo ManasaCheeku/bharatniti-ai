@@ -1,0 +1,102 @@
+[
+  {
+    "country": "India",
+    "region": "Karnataka",
+    "district": "Mysuru",
+    "category": "Healthcare",
+    "planned_investment_inr_cr": 45.0,
+    "investment_coverage_percent": 32.0,
+    "investment_gap_percent": 68.0,
+    "primary_funding_scheme": "PM-ABHIM & State Health Mission"
+  },
+  {
+    "country": "India",
+    "region": "Karnataka",
+    "district": "Belagavi",
+    "category": "Education",
+    "planned_investment_inr_cr": 30.0,
+    "investment_coverage_percent": 45.0,
+    "investment_gap_percent": 55.0,
+    "primary_funding_scheme": "Samagra Shiksha Abhiyan"
+  },
+  {
+    "country": "India",
+    "region": "Uttar Pradesh",
+    "district": "Varanasi",
+    "category": "Roads",
+    "planned_investment_inr_cr": 120.0,
+    "investment_coverage_percent": 50.0,
+    "investment_gap_percent": 50.0,
+    "primary_funding_scheme": "PMGSY All-Weather Road Mission"
+  },
+  {
+    "country": "India",
+    "region": "Maharashtra",
+    "district": "Latur",
+    "category": "Water & Sanitation",
+    "planned_investment_inr_cr": 85.0,
+    "investment_coverage_percent": 25.0,
+    "investment_gap_percent": 75.0,
+    "primary_funding_scheme": "Jal Jeevan Mission"
+  },
+  {
+    "country": "India",
+    "region": "Bihar",
+    "district": "Gaya",
+    "category": "Education",
+    "planned_investment_inr_cr": 28.0,
+    "investment_coverage_percent": 30.0,
+    "investment_gap_percent": 70.0,
+    "primary_funding_scheme": "Samagra Shiksha & District Mineral Foundation"
+  },
+  {
+    "country": "India",
+    "region": "Rajasthan",
+    "district": "Barmer",
+    "category": "Healthcare",
+    "planned_investment_inr_cr": 35.0,
+    "investment_coverage_percent": 20.0,
+    "investment_gap_percent": 80.0,
+    "primary_funding_scheme": "National Health Mission Desert Wing"
+  },
+  {
+    "country": "India",
+    "region": "Tamil Nadu",
+    "district": "Dharmapuri",
+    "category": "Public Transport",
+    "planned_investment_inr_cr": 22.0,
+    "investment_coverage_percent": 40.0,
+    "investment_gap_percent": 60.0,
+    "primary_funding_scheme": "TN Rural Transport Infrastructure Project"
+  },
+  {
+    "country": "India",
+    "region": "Telangana",
+    "district": "Warangal",
+    "category": "Electricity",
+    "planned_investment_inr_cr": 60.0,
+    "investment_coverage_percent": 55.0,
+    "investment_gap_percent": 45.0,
+    "primary_funding_scheme": "TSSPDCL Feeder Solarization"
+  },
+  {
+    "country": "India",
+    "region": "Gujarat",
+    "district": "Dahod",
+    "category": "Digital Infrastructure",
+    "planned_investment_inr_cr": 18.0,
+    "investment_coverage_percent": 35.0,
+    "investment_gap_percent": 65.0,
+    "primary_funding_scheme": "BharatNet Tribal Connectivity Scheme"
+  },
+  {
+    "country": "India",
+    "region": "West Bengal",
+    "district": "Bankura",
+    "category": "Agriculture",
+    "planned_investment_inr_cr": 40.0,
+    "investment_coverage_percent": 38.0,
+    "investment_gap_percent": 62.0,
+    "primary_funding_scheme": "PM KISAN Sampada Yojana"
+  }
+]
