@@ -33,6 +33,10 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
 
     # Affected population sum
     total_affected = db.query(func.sum(CitizenRequest.affected_population_estimate)).scalar() or 0
+    average_gap = db.query(func.avg(CitizenRequest.infrastructure_gap)).scalar() or 0
+    average_demand = db.query(func.avg(CitizenRequest.demand)).scalar() or 0
+    average_priority = db.query(func.avg(CitizenRequest.priority_score)).scalar() or 0
+    average_investment_gap = db.query(func.avg(PublicInvestment.investment_gap_percent)).scalar() or 0
 
     # Channel distribution
     channel_counts = db.query(
@@ -53,6 +57,10 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
         low_priority_count=low_priority,
         hotspots_count=hotspots_count,
         estimated_population_affected=total_affected,
+        average_infrastructure_gap=round(float(average_gap), 1),
+        average_demand=round(float(average_demand), 1),
+        average_priority=round(float(average_priority), 1),
+        average_investment_gap=round(float(average_investment_gap), 1),
         brics_readiness="Architecture-ready for BRICS adaptation (Default: India)",
         channel_distribution=channels,
         language_distribution=languages
@@ -92,13 +100,13 @@ def get_dashboard_hotspots(
         lng = dev_info.lng if dev_info else 78.9629
 
         pub_inv = db.query(PublicInvestment).filter_by(district=g.district, category=g.category).first()
-        inv_gap = pub_inv.investment_gap_percent if pub_inv else 65.0
+        inv_gap = pub_inv.investment_gap_percent if pub_inv else None
 
         avg_prio = round(float(g.avg_priority), 1)
         avg_infra_gap = round(float(g.avg_gap), 1)
-        dev_gap_score = round((avg_infra_gap * 0.5) + (inv_gap * 0.5), 1)
-
-        why = f"High citizen demand ({g.req_count} requests, avg priority {avg_prio}) combined with a {avg_infra_gap}% infrastructure gap and a {inv_gap}% public investment deficit makes this a critical development hotspot."
+        dev_gap_score = round((avg_infra_gap * 0.5) + (inv_gap * 0.5), 1) if inv_gap is not None else None
+        investment_context = f"a {inv_gap}% public investment deficit" if inv_gap is not None else "no matching public investment record"
+        why = f"High citizen demand ({g.req_count} requests, avg priority {avg_prio}) combined with a {avg_infra_gap}% infrastructure gap and {investment_context} makes this a critical development hotspot."
 
         hotspots.append(HotspotItem(
             country=g.country or "India",
@@ -131,13 +139,13 @@ def get_categories_distribution(db: Session = Depends(get_db)):
     for r in results:
         inv_avg = db.query(func.avg(PublicInvestment.investment_gap_percent)).filter(
             PublicInvestment.category == r.category
-        ).scalar() or 60.0
+        ).scalar()
 
         items.append(CategoryDistributionItem(
             category=r.category,
             count=r.cat_count,
             average_priority=round(float(r.avg_priority), 1),
-            investment_gap_avg=round(float(inv_avg), 1)
+            investment_gap_avg=round(float(inv_avg), 1) if inv_avg is not None else None
         ))
 
     return items

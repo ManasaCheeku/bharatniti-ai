@@ -50,6 +50,9 @@ export default function CitizenPortal() {
   const [error, setError] = useState('');
 
   const currentPrompts = VOICEGUIDE_PROMPTS[selectedLangObj.code] || VOICEGUIDE_PROMPTS.English;
+  const aiStatus = result?.ai_mode === 'Gemini AI Engine'
+    ? 'Analyzed by Google Gemini'
+    : 'Demo/Fallback AI Mode';
 
   // Speak Text-to-Speech Prompt
   const speakPrompt = (textToSpeak) => {
@@ -216,8 +219,6 @@ export default function CitizenPortal() {
     setError('');
 
     try {
-      const generatedIdCode = `BN-${Math.floor(100000 + Math.random() * 900000)}`;
-
       const res = await submitCitizenRequest({
         original_text: text,
         language: selectedLangObj.code,
@@ -229,11 +230,10 @@ export default function CitizenPortal() {
         video_ref: videoRecorded ? `VID-${selectedDistrict.substring(0,3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}.mp4` : null
       });
 
-      res.request_id_code = generatedIdCode;
       setResult(res);
       setGuideStep(6);
 
-      const successText = currentPrompts.success ? currentPrompts.success(generatedIdCode) : `Your request has been registered. Request ID: ${generatedIdCode}`;
+      const successText = currentPrompts.success ? currentPrompts.success(res.request_id_code) : `Your request has been registered. Request ID: ${res.request_id_code}`;
       speakPrompt(successText);
     } catch (err) {
       setError(err.message || 'Failed to register citizen request.');
@@ -373,7 +373,7 @@ export default function CitizenPortal() {
             }`}
           >
             <Video className="w-4 h-4 text-rose-400" />
-            <span>{cameraActive ? 'Stop Recording' : videoRecorded ? '✓ Video Evidence Attached' : '📹 SHOW THE PROBLEM'}</span>
+                <span>{cameraActive ? 'Stop Recording' : videoRecorded ? '✓ Video Reference Added' : '📹 SHOW THE PROBLEM'}</span>
           </button>
 
           {/* SHARE LOCATION */}
@@ -517,7 +517,7 @@ export default function CitizenPortal() {
               </div>
               <div>
                 <h3 className="font-bold text-lg text-white font-outfit">Complaint Registered Successfully</h3>
-                <p className="text-xs text-emerald-400 font-mono">Request ID: {result.request_id_code || `REQ-BN-${result.id}`} | Engine: {result.ai_mode || 'Gemini 2.5 Flash'}</p>
+                <p className="text-xs text-emerald-400 font-mono">Request ID: {result.request_id_code || `REQ-BN-${result.id}`} | {aiStatus}</p>
               </div>
             </div>
 
@@ -546,6 +546,18 @@ export default function CitizenPortal() {
             <p className="text-slate-200 font-medium italic">"{result.translated_text}"</p>
           </div>
 
+          <div className="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/20 space-y-3 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-emerald-400 uppercase font-semibold text-[10px]">Structured AI Understanding</span>
+              <span className="text-[10px] font-semibold text-emerald-300">{aiStatus}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <p className="text-slate-300"><span className="text-slate-500">Category:</span> {result.category} / {result.subcategory}</p>
+              <p className="text-slate-300"><span className="text-slate-500">Detected language:</span> {result.detected_language}</p>
+            </div>
+            <p className="text-slate-300"><span className="text-slate-500">Issue summary:</span> {result.issue_summary}</p>
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
             <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
               <p className="text-[10px] text-slate-400 uppercase font-semibold">Urgency</p>
@@ -565,9 +577,24 @@ export default function CitizenPortal() {
             </div>
           </div>
 
+          <div className="p-4 bg-slate-950/70 rounded-xl border border-amber-500/20 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-amber-400 uppercase font-semibold text-[10px]">Transparent Priority Formula</span>
+              <span className="text-emerald-400 font-bold">{result.priority_score}/100</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+              <div><p className="text-slate-500">Demand</p><p className="font-bold text-slate-200">{result.demand} x 30%</p></div>
+              <div><p className="text-slate-500">Urgency</p><p className="font-bold text-slate-200">{result.urgency} x 25%</p></div>
+              <div><p className="text-slate-500">Infra Gap</p><p className="font-bold text-slate-200">{result.infrastructure_gap} x 20%</p></div>
+              <div><p className="text-slate-500">Affected Pop</p><p className="font-bold text-slate-200">{result.affected_population_factor} x 15%</p></div>
+              <div><p className="text-slate-500">Vulnerability</p><p className="font-bold text-slate-200">{result.regional_vulnerability} x 10%</p></div>
+            </div>
+            <p className="text-amber-300 font-semibold">{result.priority_score >= 80 ? 'High Priority' : result.priority_score >= 60 ? 'Medium Priority' : 'Standard Priority'}</p>
+          </div>
+
           {result.video_ref && (
             <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs text-emerald-400 font-mono">
-              📹 Video Evidence Attached: {result.video_ref}
+              📹 Prototype video reference (not uploaded): {result.video_ref}
             </div>
           )}
 

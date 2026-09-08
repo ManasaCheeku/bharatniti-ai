@@ -1,9 +1,10 @@
 import os
 import json
+import secrets
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.models import CitizenRequest, DevelopmentData, PublicInvestment, AIAnalysis
-from app.services.priority_service import calculate_priority_score
+from app.services.priority_service import calculate_demand_score, calculate_priority_score
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data"))
 
@@ -84,8 +85,6 @@ def seed_database(db: Session):
                 g = float(r_item.get("infrastructure_gap", 70))
                 pop = float(r_item.get("affected_population_factor", 70))
                 vuln = float(r_item.get("regional_vulnerability", 65))
-                
-                priority = calculate_priority_score(u, g, pop, vuln, 75.0)
 
                 created_at_dt = datetime.utcnow()
                 if "created_at" in r_item:
@@ -108,9 +107,13 @@ def seed_database(db: Session):
                     subcategory=r_item.get("subcategory", "General Infrastructure"),
                     issue_summary=r_item.get("issue_summary", r_item["original_text"][:150]),
                     urgency=u,
-                    priority_score=priority,
+                    demand=0.0,
+                    affected_population_factor=pop,
+                    regional_vulnerability=vuln,
+                    priority_score=0.0,
                     affected_population_estimate=int(pop * 450),
                     infrastructure_gap=g,
+                    video_ref=r_item.get("video_ref"),
                     status="Analyzed",
                     created_at=created_at_dt
                 )
@@ -121,7 +124,7 @@ def seed_database(db: Session):
                 ai_entry = AIAnalysis(
                     request_id=req_entry.id,
                     ai_mode="Demo AI Mode (Seeded)",
-                    model_name="gemini-2.5-flash",
+                    model_name="gemini-3.6-flash",
                     structured_output=json.dumps(r_item),
                     recommended_intervention=r_item.get("recommended_intervention", "Infrastructure upgrade required."),
                     reasoning=r_item.get("reasoning", "High citizen urgency reported.")
@@ -129,3 +132,32 @@ def seed_database(db: Session):
                 db.add(ai_entry)
 
         db.commit()
+
+
+def backfill_request_metrics(db: Session):
+    """Backfill IDs and demand-derived scores for seeded and pre-existing rows."""
+    requests = db.query(CitizenRequest).all()
+    counts = {}
+    for request in requests:
+        key = (request.state, request.district, request.category)
+        counts[key] = counts.get(key, 0) + 1
+
+    used_ids = {request.request_id_code for request in requests if request.request_id_code}
+    for request in requests:
+        if not request.request_id_code:
+            for _ in range(10):
+                candidate = f"REQ-BN-{secrets.randbelow(900000) + 100000}"
+                if candidate not in used_ids:
+                    request.request_id_code = candidate
+                    used_ids.add(candidate)
+                    break
+        demand = calculate_demand_score(counts[(request.state, request.district, request.category)])
+        request.demand = demand
+        request.priority_score = calculate_priority_score(
+            request.urgency,
+            request.infrastructure_gap,
+            request.affected_population_factor,
+            request.regional_vulnerability,
+            demand
+        )
+    db.commit()

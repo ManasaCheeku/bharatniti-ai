@@ -1,27 +1,81 @@
 from datetime import datetime
-from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field
+from typing import List, Optional, Any, Dict, Literal
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+SUPPORTED_STATES = (
+    "Karnataka", "Maharashtra", "Tamil Nadu", "Kerala", "Uttar Pradesh",
+    "Bihar", "Rajasthan", "Gujarat", "West Bengal", "Telangana"
+)
+SUPPORTED_DISTRICTS = (
+    "Mysuru", "Belagavi", "Shivamogga", "Mandya", "Bengaluru Urban",
+    "Varanasi", "Mirzapur", "Latur", "Thane", "Mumbai Suburban", "Gaya",
+    "Darbhanga", "Barmer", "Jalor", "Dharmapuri", "Warangal", "Dahod", "Bankura", "Palakkad"
+)
+SUPPORTED_CATEGORIES = (
+    "Healthcare", "Education", "Roads", "Public Transport", "Water & Sanitation",
+    "Electricity", "Digital Infrastructure", "Housing", "Agriculture", "Environment",
+    "Public Safety", "Other"
+)
+SUPPORTED_LANGUAGES = ("Auto-detect", "English", "Kannada", "Hindi", "Bengali", "Tamil", "Telugu", "Malayalam", "Gujarati")
+SUPPORTED_SOURCES = ("Web", "Voice", "Messaging App", "Demo Dataset")
 
 class RequestAnalyzeInput(BaseModel):
-    original_text: str = Field(..., min_length=5, description="Citizen grievance or request text")
-    language: Optional[str] = Field("Auto-detect", description="Specified input language or Auto-detect")
-    country: Optional[str] = Field("India", description="Country context (Default: India)")
-    source: Optional[str] = Field("Web", description="Input channel: Web, Voice, Messaging App")
-    state: Optional[str] = Field(None, description="Target state if specified")
-    district: Optional[str] = Field(None, description="Target district if specified")
-    category: Optional[str] = Field(None, description="Category override if specified")
+    model_config = ConfigDict(extra="forbid")
+
+    original_text: str = Field(..., min_length=5, max_length=6000, description="Citizen grievance or request text")
+    language: Literal[SUPPORTED_LANGUAGES] = Field("Auto-detect", description="Specified input language or Auto-detect")
+    country: Literal["India"] = Field("India", description="Country context")
+    source: Literal[SUPPORTED_SOURCES] = Field("Web", description="Input channel")
+    state: Optional[Literal[SUPPORTED_STATES]] = Field(None, description="Target state if specified")
+    district: Optional[Literal[SUPPORTED_DISTRICTS]] = Field(None, description="Target district if specified")
+    category: Optional[Literal[SUPPORTED_CATEGORIES]] = Field(None, description="Category override if specified")
+
+    @model_validator(mode="after")
+    def validate_location(self):
+        if self.district and not self.state:
+            return self
+        if self.state and self.district:
+            state_districts = {
+                "Karnataka": {"Mysuru", "Belagavi", "Shivamogga", "Mandya", "Bengaluru Urban"},
+                "Maharashtra": {"Latur", "Thane", "Mumbai Suburban"},
+                "Tamil Nadu": {"Dharmapuri"}, "Kerala": {"Palakkad"},
+                "Uttar Pradesh": {"Varanasi", "Mirzapur"}, "Bihar": {"Gaya", "Darbhanga"},
+                "Rajasthan": {"Barmer", "Jalor"}, "Gujarat": {"Dahod"},
+                "West Bengal": {"Bankura"}, "Telangana": {"Warangal"}
+            }
+            if self.district not in state_districts[self.state]:
+                raise ValueError("District is not valid for the selected state")
+        return self
 
 class RequestCreateInput(BaseModel):
-    original_text: str = Field(..., min_length=5)
-    language: Optional[str] = "Auto-detect"
-    country: Optional[str] = "India"
-    source: Optional[str] = "Web"
-    state: Optional[str] = None
-    district: Optional[str] = None
-    category: Optional[str] = None
-    video_ref: Optional[str] = None
+    model_config = ConfigDict(extra="forbid")
+
+    original_text: str = Field(..., min_length=5, max_length=6000)
+    language: Literal[SUPPORTED_LANGUAGES] = "Auto-detect"
+    country: Literal["India"] = "India"
+    source: Literal[SUPPORTED_SOURCES] = "Web"
+    state: Optional[Literal[SUPPORTED_STATES]] = None
+    district: Optional[Literal[SUPPORTED_DISTRICTS]] = None
+    category: Optional[Literal[SUPPORTED_CATEGORIES]] = None
+    video_ref: Optional[str] = Field(None, max_length=120, pattern=r"^[A-Za-z0-9._-]+$")
+
+    @model_validator(mode="after")
+    def validate_location(self):
+        if self.state and self.district:
+            state_districts = {
+                "Karnataka": {"Mysuru", "Belagavi", "Shivamogga", "Mandya", "Bengaluru Urban"},
+                "Maharashtra": {"Latur", "Thane", "Mumbai Suburban"}, "Tamil Nadu": {"Dharmapuri"},
+                "Kerala": {"Palakkad"}, "Uttar Pradesh": {"Varanasi", "Mirzapur"},
+                "Bihar": {"Gaya", "Darbhanga"}, "Rajasthan": {"Barmer", "Jalor"},
+                "Gujarat": {"Dahod"}, "West Bengal": {"Bankura"}, "Telangana": {"Warangal"}
+            }
+            if self.district not in state_districts[self.state]:
+                raise ValueError("District is not valid for the selected state")
+        return self
 
 class AIAnalysisResult(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     request_id_code: Optional[str] = None
     detected_language: str
     translated_text: str
@@ -33,6 +87,7 @@ class AIAnalysisResult(BaseModel):
     district: str
     source: str = "Web"
     urgency: float
+    demand: float = 0.0
     infrastructure_gap: float
     affected_population_factor: float
     regional_vulnerability: float
@@ -59,6 +114,9 @@ class CitizenRequestResponse(BaseModel):
     subcategory: Optional[str]
     issue_summary: Optional[str]
     urgency: float
+    demand: float = 0.0
+    affected_population_factor: float = 0.0
+    regional_vulnerability: float = 0.0
     priority_score: float
     affected_population_estimate: int
     infrastructure_gap: float
@@ -85,6 +143,10 @@ class DashboardSummaryResponse(BaseModel):
     low_priority_count: int
     hotspots_count: int
     estimated_population_affected: int
+    average_infrastructure_gap: float = 0.0
+    average_demand: float = 0.0
+    average_priority: float = 0.0
+    average_investment_gap: float = 0.0
     brics_readiness: str = "Architecture-ready for BRICS adaptation (Default: India)"
     channel_distribution: List[ChannelDistributionItem] = []
     language_distribution: List[LanguageDistributionItem] = []
@@ -98,8 +160,8 @@ class HotspotItem(BaseModel):
     average_priority: float
     estimated_affected_population: int
     infrastructure_gap: float
-    investment_gap_percent: float = 65.0
-    development_gap_score: float = 82.5
+    investment_gap_percent: Optional[float] = None
+    development_gap_score: Optional[float] = None
     why_hotspot: str = "High citizen demand combined with infrastructure and public investment gaps."
     lat: float
     lng: float
@@ -108,7 +170,7 @@ class CategoryDistributionItem(BaseModel):
     category: str
     count: int
     average_priority: float
-    investment_gap_avg: float = 60.0
+    investment_gap_avg: Optional[float] = None
 
 class StateDistributionItem(BaseModel):
     state: str
@@ -116,10 +178,25 @@ class StateDistributionItem(BaseModel):
     high_priority_count: int
 
 class RecommendationInput(BaseModel):
-    country: Optional[str] = "India"
-    state: str
-    district: str
-    category: str
+    model_config = ConfigDict(extra="forbid")
+
+    country: Literal["India"] = "India"
+    state: Literal[SUPPORTED_STATES]
+    district: Literal[SUPPORTED_DISTRICTS]
+    category: Literal[SUPPORTED_CATEGORIES]
+
+    @model_validator(mode="after")
+    def validate_location(self):
+        location_map = {
+            "Karnataka": {"Mysuru", "Belagavi", "Shivamogga", "Mandya", "Bengaluru Urban"},
+            "Maharashtra": {"Latur", "Thane", "Mumbai Suburban"}, "Tamil Nadu": {"Dharmapuri"},
+            "Kerala": {"Palakkad"}, "Uttar Pradesh": {"Varanasi", "Mirzapur"},
+            "Bihar": {"Gaya", "Darbhanga"}, "Rajasthan": {"Barmer", "Jalor"},
+            "Gujarat": {"Dahod"}, "West Bengal": {"Bankura"}, "Telangana": {"Warangal"}
+        }
+        if self.district not in location_map[self.state]:
+            raise ValueError("District is not valid for the selected state")
+        return self
 
 class RecommendationResponse(BaseModel):
     country: str = "India"

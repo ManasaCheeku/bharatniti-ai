@@ -101,7 +101,7 @@ export default function HotspotsPage() {
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 uppercase font-semibold">Dev Gap Score</span>
-                      <p className="font-bold text-rose-400 text-sm mt-0.5">{item.development_gap_score || 82.5}/100</p>
+                      <p className="font-bold text-rose-400 text-sm mt-0.5">{item.development_gap_score == null ? 'Unavailable' : `${item.development_gap_score}/100`}</p>
                     </div>
                   </div>
 
@@ -116,7 +116,7 @@ export default function HotspotsPage() {
                     </div>
                     <div className="p-2 bg-slate-900/60 rounded-lg">
                       <span className="text-[9px] text-slate-400">Invest Deficit</span>
-                      <p className="font-bold text-purple-400">{item.investment_gap_percent || 65}%</p>
+                      <p className="font-bold text-purple-400">{item.investment_gap_percent == null ? 'Unavailable' : `${item.investment_gap_percent}%`}</p>
                     </div>
                   </div>
 

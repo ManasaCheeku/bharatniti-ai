@@ -18,7 +18,7 @@ Governments across India receive thousands of citizen development requests and i
 
 1. **Multilingual Citizen Intake Portal (`/citizen`)**:
    - Supports text and Web Speech API voice input.
-   - Multilingual processing in **English**, **Kannada (ಕನ್ನಡ)**, and **Hindi (हिंदी)**.
+   - Multilingual processing in **English**, **Kannada (ಕನ್ನಡ)**, **Hindi (हिंदी)**, Bengali, Tamil, and Telugu.
    - Clickable realistic preset samples for instant testing.
 2. **Google Gemini AI NLU Engine**:
    - Built using official `google-genai` Python SDK.
@@ -83,7 +83,7 @@ $$\text{Priority Score} = (0.30 \times \text{Demand}) + (0.25 \times \text{Urgen
 
 ## 🗺️ India-Wide Scalability & Coverage
 
-Seeded with **50 realistic citizen requests** across **10 Indian States**:
+The repository currently includes **12 synthetic citizen requests** across **6 Indian States**. The district reference layer covers the intended 10-state design:
 - Karnataka
 - Maharashtra
 - Tamil Nadu
@@ -95,7 +95,7 @@ Seeded with **50 realistic citizen requests** across **10 Indian States**:
 - West Bengal
 - Telangana
 
-Across **10 Infrastructure Categories**: Healthcare, Education, Roads, Public Transport, Water & Sanitation, Electricity, Digital Infrastructure, Agriculture, Environment, and Public Safety.
+Across the represented request data, categories include Healthcare, Education, Roads, Public Transport, and Water & Sanitation. Synthetic data is for demonstration and is not official government statistics.
 
 ---
 

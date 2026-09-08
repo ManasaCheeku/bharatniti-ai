@@ -1,3 +1,5 @@
+import secrets
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -10,9 +12,11 @@ from app.schemas.schemas import (
     CitizenRequestResponse
 )
 from app.services.gemini_service import analyze_citizen_request
+from app.services.priority_service import calculate_demand_score, calculate_priority_score
 import json
 
 router = APIRouter(prefix="/api/requests", tags=["Requests"])
+logger = logging.getLogger(__name__)
 
 @router.post("/analyze", response_model=AIAnalysisResult)
 def analyze_request_endpoint(input_data: RequestAnalyzeInput):
@@ -24,11 +28,13 @@ def analyze_request_endpoint(input_data: RequestAnalyzeInput):
             user_district=input_data.district,
             user_cat=input_data.category,
             user_country=input_data.country or "India",
-            user_source=input_data.source or "Web"
+            user_source=input_data.source or "Web",
+            include_request_id=False
         )
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+    except Exception:
+        logger.exception("Ad-hoc request analysis failed")
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 @router.post("", response_model=CitizenRequestResponse)
 def create_citizen_request(input_data: RequestCreateInput, db: Session = Depends(get_db)):
@@ -43,7 +49,23 @@ def create_citizen_request(input_data: RequestCreateInput, db: Session = Depends
             user_source=input_data.source or "Web"
         )
 
+        relevant_count = db.query(CitizenRequest).filter(
+            CitizenRequest.state == ai_result["state"],
+            CitizenRequest.district == ai_result["district"],
+            CitizenRequest.category == ai_result["category"]
+        ).count() + 1
+        demand = calculate_demand_score(relevant_count)
+        priority = calculate_priority_score(
+            ai_result["urgency"],
+            ai_result["infrastructure_gap"],
+            ai_result["affected_population_factor"],
+            ai_result["regional_vulnerability"],
+            demand
+        )
+        request_id_code = _next_request_id(db)
+
         req_entry = CitizenRequest(
+            request_id_code=request_id_code,
             country=ai_result.get("country", "India"),
             source=input_data.source or ai_result.get("source", "Web"),
             original_text=input_data.original_text,
@@ -55,9 +77,13 @@ def create_citizen_request(input_data: RequestCreateInput, db: Session = Depends
             subcategory=ai_result["subcategory"],
             issue_summary=ai_result["issue_summary"],
             urgency=ai_result["urgency"],
-            priority_score=ai_result["priority_score"],
+            demand=demand,
+            affected_population_factor=ai_result["affected_population_factor"],
+            regional_vulnerability=ai_result["regional_vulnerability"],
+            priority_score=priority,
             affected_population_estimate=ai_result["affected_population_estimate"],
             infrastructure_gap=ai_result["infrastructure_gap"],
+            video_ref=input_data.video_ref,
             status="Analyzed"
         )
         db.add(req_entry)
@@ -79,18 +105,28 @@ def create_citizen_request(input_data: RequestCreateInput, db: Session = Depends
         response_data.ai_mode = ai_result["ai_mode"]
         return response_data
 
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to submit request: {str(e)}")
+        logger.exception("Citizen request submission failed")
+        raise HTTPException(status_code=500, detail="Failed to submit request")
+
+
+def _next_request_id(db: Session) -> str:
+    """Create a backend-owned ID and guard against collisions in the database."""
+    for _ in range(10):
+        candidate = f"REQ-BN-{secrets.randbelow(900000) + 100000}"
+        if not db.query(CitizenRequest).filter_by(request_id_code=candidate).first():
+            return candidate
+    raise HTTPException(status_code=500, detail="Unable to allocate a unique request ID")
 
 @router.get("", response_model=List[CitizenRequestResponse])
 def get_all_requests(
-    country: Optional[str] = Query(None),
-    state: Optional[str] = Query(None),
-    district: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
-    source: Optional[str] = Query(None),
-    min_priority: Optional[float] = Query(None),
+    country: Optional[str] = Query(None, max_length=50),
+    state: Optional[str] = Query(None, max_length=100),
+    district: Optional[str] = Query(None, max_length=100),
+    category: Optional[str] = Query(None, max_length=100),
+    source: Optional[str] = Query(None, max_length=50),
+    min_priority: Optional[float] = Query(None, ge=0, le=100),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db)
 ):
@@ -123,9 +159,12 @@ def get_all_requests(
     return result
 
 @router.get("/{request_id}", response_model=CitizenRequestResponse)
-def get_request_by_id(request_id: int, db: Session = Depends(get_db)):
-    """Retrieves single request details by ID."""
-    req = db.query(CitizenRequest).filter(CitizenRequest.id == request_id).first()
+def get_request_by_id(request_id: str, db: Session = Depends(get_db)):
+    """Retrieves a request by its canonical code or legacy numeric database ID."""
+    query = db.query(CitizenRequest)
+    req = query.filter(CitizenRequest.request_id_code == request_id).first()
+    if not req and request_id.isdigit():
+        req = query.filter(CitizenRequest.id == int(request_id)).first()
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
     

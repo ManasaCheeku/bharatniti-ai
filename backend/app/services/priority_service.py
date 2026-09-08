@@ -28,3 +28,9 @@ def calculate_priority_score(
     )
 
     return round(max(0.0, min(100.0, raw_score)), 1)
+
+
+def calculate_demand_score(relevant_request_count: int) -> float:
+    """Convert the observed request count into a deterministic 0-100 demand score."""
+    count = max(0, int(relevant_request_count))
+    return round(min(100.0, 20.0 + (count * 15.0)), 1)

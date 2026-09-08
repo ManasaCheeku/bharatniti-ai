@@ -78,20 +78,8 @@ export default function Dashboard() {
     { name: 'Low Priority (<60)', value: summary?.low_priority_count || 0, color: '#10b981' }
   ];
 
-  const channelData = summary?.channel_distribution || [
-    { channel: 'Web', count: 18 },
-    { channel: 'Voice', count: 18 },
-    { channel: 'Messaging App', count: 14 }
-  ];
-
-  const languageData = summary?.language_distribution || [
-    { language: 'Bengali', count: 12 },
-    { language: 'Kannada', count: 10 },
-    { language: 'Hindi', count: 10 },
-    { language: 'Tamil', count: 8 },
-    { language: 'Telugu', count: 6 },
-    { language: 'English', count: 4 }
-  ];
+  const channelData = summary?.channel_distribution || [];
+  const languageData = summary?.language_distribution || [];
 
   if (loading) {
     return (
@@ -114,7 +102,7 @@ export default function Dashboard() {
           </div>
           <h1 className="text-3xl font-extrabold text-white font-outfit">Policymaker Intelligence Dashboard</h1>
           <p className="text-xs text-slate-400 mt-1 flex items-center space-x-1.5">
-            <span>From fragmented citizen feedback to evidence-backed development priorities.</span>
+            <span>From fragmented citizen feedback to evidence-backed development priorities. Data coverage: {statesData.length} states / {categoriesData.length} categories.</span>
             <span className="text-amber-400 font-semibold">(Built for India. Designed for BRICS.)</span>
           </p>
         </div>
@@ -133,7 +121,7 @@ export default function Dashboard() {
         <KPICard
           title="Total Citizen Requests"
           value={summary?.total_requests?.toLocaleString() || '0'}
-          subtitle="Seeded across 10 Indian States"
+          subtitle={"Across " + statesData.length + " Indian States"}
           icon={Activity}
           color="blue"
         />
@@ -173,23 +161,23 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
           <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
             <p className="text-[10px] text-slate-400 uppercase font-semibold">Citizen Demand</p>
-            <p className="text-lg font-bold text-amber-400">{summary?.total_requests} Requests</p>
+            <p className="text-lg font-bold text-amber-400">{summary?.total_requests} Requests / {statesData.length} States</p>
           </div>
           <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
             <p className="text-[10px] text-slate-400 uppercase font-semibold">Infra Gap Avg</p>
-            <p className="text-lg font-bold text-rose-400">81.4 / 100</p>
+            <p className="text-lg font-bold text-rose-400">{summary?.average_infrastructure_gap ?? 0} / 100</p>
           </div>
           <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
             <p className="text-[10px] text-slate-400 uppercase font-semibold">Public Investment Gap</p>
-            <p className="text-lg font-bold text-purple-400">64.5% Deficit</p>
+            <p className="text-lg font-bold text-purple-400">{summary?.average_investment_gap ?? 0}% Deficit</p>
           </div>
           <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
             <p className="text-[10px] text-slate-400 uppercase font-semibold">Population Impact</p>
-            <p className="text-lg font-bold text-blue-400">1.7M Citizens</p>
+            <p className="text-lg font-bold text-blue-400">{summary?.estimated_population_affected?.toLocaleString() || 0} Citizens</p>
           </div>
           <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
             <p className="text-[10px] text-slate-400 uppercase font-semibold">Development Priority</p>
-            <p className="text-lg font-bold text-emerald-400">High (83.2/100)</p>
+            <p className="text-lg font-bold text-emerald-400">{summary?.average_priority ?? 0}/100</p>
           </div>
         </div>
       </div>
@@ -204,7 +192,7 @@ export default function Dashboard() {
               <Globe2 className="w-4 h-4 text-amber-400" />
               <span>Citizen Languages Distribution</span>
             </span>
-            <span className="text-xs text-slate-400 font-normal">5 Regional + English</span>
+            <span className="text-xs text-slate-400 font-normal">{languageData.length} languages</span>
           </h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
