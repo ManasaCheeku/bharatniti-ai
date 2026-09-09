@@ -17,7 +17,11 @@ from app.routes.recommendations import router as recommendations_router
 load_dotenv()
 
 def _configured_origins() -> list[str]:
-    configured = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    vercel_url = os.getenv("VERCEL_URL")
+    default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+    if vercel_url:
+        default_origins += f",https://{vercel_url}"
+    configured = os.getenv("CORS_ORIGINS", default_origins)
     return [origin.strip() for origin in configured.split(",") if origin.strip() and origin.strip() != "*"]
 
 
