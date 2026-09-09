@@ -130,6 +130,7 @@ pip install -r backend/requirements.txt
 python backend/seed_db.py
 
 # Start FastAPI Uvicorn backend server
+cd backend
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 

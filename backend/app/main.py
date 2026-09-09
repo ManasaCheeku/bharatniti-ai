@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import inspect, text
 from app.database import engine, Base, SessionLocal
 from app.services.seed_service import seed_database, backfill_request_metrics
+from app.services.gemini_service import get_configured_gemini_api_key
 from app.routes.requests import router as requests_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.recommendations import router as recommendations_router
@@ -113,7 +114,7 @@ def startup_db_event():
 @app.get("/api/health", tags=["Health"])
 def health_check():
     """Service health check endpoint."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_configured_gemini_api_key()
     ai_mode = "Gemini AI Engine" if api_key else "Demo AI Mode (Fallback Active)"
     return {
         "status": "healthy",

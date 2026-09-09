@@ -15,6 +15,31 @@ logger = logging.getLogger(__name__)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
+def get_configured_gemini_api_key() -> str:
+    value = os.getenv("GEMINI_API_KEY", "").strip()
+    if value.lower() in {"your_google_gemini_api_key_here", "your_api_key_here"}:
+        return ""
+    return value
+
+
+def _log_gemini_failure(operation: str, exc: Exception) -> None:
+    """Log actionable Gemini diagnostics without request content or secrets."""
+    message = str(exc)
+    api_key = get_configured_gemini_api_key()
+    if api_key:
+        message = message.replace(api_key, "[REDACTED]")
+    message = message[:1000]
+    status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    logger.error(
+        "Gemini %s failed: type=%s status=%s model=%s api_key_configured=%s message=%s",
+        operation,
+        type(exc).__name__,
+        status_code,
+        os.getenv("GEMINI_MODEL", GEMINI_MODEL),
+        bool(get_configured_gemini_api_key()),
+        message,
+    )
+
 def _generate_request_id() -> str:
     return f"REQ-BN-{random.randint(10000, 99999)}"
 
@@ -196,7 +221,7 @@ def analyze_citizen_request(text: str, user_state: str = None, user_district: st
     Analyzes citizen request text using Google Gemini API (`google-genai` SDK).
     Falls back gracefully to Demo AI Mode if API Key is missing or request fails.
     """
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_configured_gemini_api_key()
 
     if not api_key:
         logger.info("Gemini credentials are not configured; operating in Demo AI Mode.")
@@ -293,14 +318,15 @@ Identify and return a valid JSON object matching this schema exactly:
             "raw_output": raw_json
         }
 
-    except Exception as e:
-        logger.error("Gemini analysis failed; falling back to Demo AI Mode.")
+    except Exception as exc:
+        _log_gemini_failure("analysis", exc)
+        logger.warning("Gemini analysis failed; falling back to Demo AI Mode.")
         return _get_fallback_analysis(text, user_state, user_district, user_cat, user_country, user_source)
 
 
 def generate_policy_brief(state: str, district: str, category: str, country: str = "India", citizen_requests_count: int = 0, avg_priority: float = 0.0, affected_population: int = 0, infrastructure_gap: float = 0.0, investment_gap: float = 0.0, investment_coverage: float = 0.0, planned_investment: float = 0.0) -> Dict[str, Any]:
     """Generates an evidence-backed AI Policy Brief including public investment context."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_configured_gemini_api_key()
 
     fallback_response = {
         "country": country,
@@ -398,6 +424,7 @@ Return valid JSON with these exact keys:
         raw_json["ai_mode"] = "Gemini AI Engine"
         raw_json["disclaimer"] = "Illustrative AI-generated decision-support recommendation — not an official government decision or budget."
         return raw_json
-    except Exception as e:
-        logger.error("Gemini Policy Brief generation failed; using fallback response.")
+    except Exception as exc:
+        _log_gemini_failure("policy brief", exc)
+        logger.warning("Gemini Policy Brief generation failed; using fallback response.")
         return fallback_response
