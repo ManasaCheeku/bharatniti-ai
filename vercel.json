@@ -1,10 +1,10 @@
 {
-  "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.py": {
       "runtime": "python3.12",
-      "includeFiles": "data/*.json"
+      "includeFiles": ["data/*.json"]
     }
   },
   "rewrites": [
