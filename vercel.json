@@ -4,7 +4,7 @@
   "functions": {
     "api/index.py": {
       "runtime": "python3.12",
-      "includeFiles": ["data/*.json"]
+      "includeFiles": "data/*.json"
     }
   },
   "rewrites": [
